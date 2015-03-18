@@ -572,7 +572,7 @@ boolx writelan(language lanout, char *workdir)
 		return UN_KNOWN;
 	}
 	(void) fclose(amrp);
-#ifdef UNIX
+#if defined(unix) || defined(__unix) || defined(__unix__) || defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 	if(chmod(fname, 0664) == -1)
 		return UN_KNOWN;
 #endif

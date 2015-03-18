@@ -47,12 +47,10 @@
 /* BACKSPACE: keyboard code for <BACKSPACE>
  * PATHSTR: separator for pathnames
  */
-#ifdef DOS			/* Lu-Go */
+#if defined(DOS) || defined(_WIN32) /* Lu-Go */
 #define BACKSPACE	'\b'	/* Lu-Go */
 #define PATHSTR 	"\\"	/* Lu-Go */
-#endif				/* Lu-Go */
-
-#ifdef UNIX			/* Lu-Go */
+#elif defined(unix) || defined(__unix) || defined(__unix__) || defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 #define BACKSPACE	(010)	/* LU-Go */
 #define PATHSTR 	"/"	/* Lu-Go */
 #endif				/* Lu-Go */

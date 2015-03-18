@@ -25,14 +25,13 @@
 #include <ctype.h>
 #include <string.h>
 
-#ifdef UNIX
+#if defined(unix) || defined(__unix) || defined(__unix__) || defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+#define PLATFORM_UNIX
 # ifndef LIBAMORE
 #  include <curses.h>
 # endif
 # include <sys/param.h>
-#endif
-
-#ifdef DOS
+#elif defined(DOS) || defined(_WIN32)
 # include <malloc.h>
 # include <conio.h>
 # include <stdlib.h>
@@ -42,7 +41,7 @@
 #include <amore/cons.h>
 #include <amore/typedefs.h>
 
-#ifdef UNIX
+#ifdef PLATFORM_UNIX
 # include <amore/unix.h>
 #endif
 
@@ -102,7 +101,7 @@ extern char dummy[PILEN];
 
 #define newdlist() (d_list)newbuf((posint)1,(posint)sizeof(struct dlist))
 
-#ifdef UNIX
+#ifdef PLATFORM_UNIX
 #define gtyx(A,B,C)  getyx(A,B,C)
 #endif
 

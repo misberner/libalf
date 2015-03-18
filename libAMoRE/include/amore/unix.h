@@ -14,8 +14,11 @@
  *  02111-1307 USA.
  */
 
+// these are all declared in the respective standard header files
+
+#if 0
 /* std functions */
-#ifdef LINUX
+#ifdef __linux__
 void exit();
 void *calloc();
 void free();
@@ -45,3 +48,12 @@ FILE *fopen();
 void abort();
 void perror();
 #endif
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#include <setjmp.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
+
