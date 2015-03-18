@@ -27,44 +27,35 @@ LDFLAGS+=-shared -L${LIBDIR}
 
 OBJECTS=alf.o alphabet.o conjecture.o basic_string.o learning_algorithm.o logger.o minisat_solver.o normalizer_msc.o statistics.o
 
-# Choose OS
-ifeq (${OS}, Windows_NT)
-  LDFLAGS += -lws2_32
-  TARGET=libalf.dll
-else
-  TARGET=libalf.so
-endif
+TARGET=libalf.${LIBEXT}
 
 INSTALL_SHARED_NAME=${TARGET}${LIBVERSIONTAG}
 INSTALL_STATIC_NAME=libalf.a${LIBVERSIONTAG}
 
 all:	${TARGET}
 
-libalf.so: ${OBJECTS}
-	${CXX} $(OBJECTS) $(LDFLAGS) -o $@ 
-
-libalf.dll: ${OBJECTS}
+${TARGET}: ${OBJECTS}
 	${CXX} $(OBJECTS) $(LDFLAGS) -o $@ 
 
 libalf.a: ${OBJECTS}
 	${AR} rcs $@ $(OBJECTS)
 
 clean:
-	-rm -f *.o alf.dll libalf.so libalf.a
+	-rm -f *.o ${TARGET} libalf.a
 
 install: ${TARGET} libalf.a
 	@echo
 	@echo installing libalf library to ${LIBDIR} ...
 	@echo
-	-install -v -m 755 -d ${LIBDIR}
-	install -T -v -m 755 ${TARGET} ${LIBDIR}/${INSTALL_SHARED_NAME}
-	install -T -v -m 755 libalf.a  ${LIBDIR}/${INSTALL_STATIC_NAME}
+	-${INSTALL} -v -m 755 -d ${LIBDIR}
+	${INSTALL} -T -v -m 755 ${TARGET} ${LIBDIR}/${INSTALL_SHARED_NAME}
+	${INSTALL} -T -v -m 755 libalf.a  ${LIBDIR}/${INSTALL_STATIC_NAME}
 	# symlinks
 	-rm -f ${LIBDIR}/${TARGET}
 	ln -s ${LIBDIR}/${INSTALL_SHARED_NAME} ${LIBDIR}/${TARGET}
 	-rm -f ${LIBDIR}/libalf.a
 	ln -s ${LIBDIR}/${INSTALL_STATIC_NAME}  ${LIBDIR}/libalf.a
-	-test `id -u` -eq 0 && /sbin/ldconfig; true
+	-${RUN_LDCONFIG}
 
 uninstall:
 	@echo
@@ -74,4 +65,4 @@ uninstall:
 	rm -f ${LIBDIR}/${INSTALL_STATIC_NAME}
 	rm -f ${LIBDIR}/${TARGET}
 	rm -f ${LIBDIR}/libalf.a
-	-test `id -u` -eq 0 && /sbin/ldconfig; true
+	-${RUN_LDCONFIG}

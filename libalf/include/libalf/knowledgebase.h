@@ -85,6 +85,8 @@ namespace libalf {
 template <class answer>
 class knowledgebase {
 	public: // types
+		class iterator; // forward-decl required for friend-decl below
+		
 		class node {
 			friend class knowledgebase<answer>;
 			friend class knowledgebase<answer>::iterator;
