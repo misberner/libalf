@@ -18,12 +18,7 @@ VERSION?=v${VERSIONTAG}
 LIBVERSIONTAG?=.${VERSIONTAG}
 endif
 
-# Choose OS
-ifeq (${OS}, Windows_NT)
-  TARGET=mVCA.dll
-else
-  TARGET=libmVCA.so
-endif
+TARGET=${LIBPREFIX}mVCA.${LIBEXT}
 
 INSTALL_SHARED_NAME=${TARGET}${LIBVERSIONTAG}
 INSTALL_STATIC_NAME=libmVCA.a${LIBVERSIONTAG}
@@ -36,37 +31,32 @@ CPPFLAGS+=-D__cplusplus -DVERSION="\"${VERSION}\""
 #CPPFLAGS+=-fno-stack-protector
 LDFLAGS+=-shared -L${LIBDIR}
 
-SONAME=libmVCA
-
 OBJECTS=pushdown.o transition_function.o mVCA.o deterministic_mVCA.o nondeterministic_mVCA.o p-automaton.o
 
 all:	${TARGET}
 
-libmVCA.so: ${OBJECTS}
+${TARGET}: ${OBJECTS}
 	${CXX} $(OBJECTS) $(LDFLAGS) -o $@ 
-
-mVCA.dll: ${OBJECTS}
-	${CXX} $(OBJECTS) $(LDFLAGS) -o $@ -lws2_32
 
 libmVCA.a: ${OBJECTS}
 	${AR} rcs $@ $(OBJECTS)
 
 clean:
-	-rm -f *.o libmVCA.so mVCA.dll libmVCA.a
+	-rm -f *.o ${TARGET} libmVCA.a
 
 install: ${TARGET} libmVCA.a
 	@echo
 	@echo installing libmVCA library to ${LIBDIR} ...
 	@echo
-	-install -v -m 755 -d ${LIBDIR}
-	install -T -v -m 755 ${TARGET} ${LIBDIR}/${INSTALL_SHARED_NAME}
-	install -T -v -m 755 libmVCA.a  ${LIBDIR}/${INSTALL_STATIC_NAME}
+	-${INSTALL} -v -m 755 -d ${LIBDIR}
+	${INSTALL} -T -v -m 755 ${TARGET} ${LIBDIR}/${INSTALL_SHARED_NAME}
+	${INSTALL} -T -v -m 755 libmVCA.a  ${LIBDIR}/${INSTALL_STATIC_NAME}
 	# symlinks
 	-rm -f ${LIBDIR}/${TARGET}
 	ln -s ${LIBDIR}/${INSTALL_SHARED_NAME} ${LIBDIR}/${TARGET}
 	-rm -f ${LIBDIR}/libmVCA.a
 	ln -s ${LIBDIR}/${INSTALL_STATIC_NAME}  ${LIBDIR}/libmVCA.a
-	-test `id -u` -eq 0 && /sbin/ldconfig; true
+	-${RUN_LDCONFIG}
 
 uninstall:
 	@echo
@@ -76,5 +66,5 @@ uninstall:
 	rm -f ${LIBDIR}/${INSTALL_STATIC_NAME}
 	rm -f ${LIBDIR}/${TARGET}
 	rm -f ${LIBDIR}/libmVCA.a
-	-test `id -u` -eq 0 && /sbin/ldconfig; true
+	-${RUN_LDCONFIG}
 
