@@ -47,8 +47,8 @@ install: fat fateq
 	@echo
 	@echo installing fat to ${BINDIR} ...
 	@echo
-	-install -v -m 755 -d ${BINDIR}
-	install -v -m 755 fat fateq ${BINDIR}
+	-${INSTALL} -v -m 755 -d ${BINDIR}
+	${INSTALL} -v -m 755 fat fateq ${BINDIR}
 
 uninstall:
 	@echo
