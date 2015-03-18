@@ -1,0 +1,18 @@
+vim: tw=80 fo+=a
+
+
+libmVCA - m-bounded Visibly 1-Counter Automata
+
+http://libalf.informatik.rwth-aachen.de/
+
+(c) 2009, 2010 Lehrstuhl Softwaremodellierung und Verifikation (I2), RWTH Aachen University
+           and Lehrstuhl Logik und Theorie diskreter Systeme (I7), RWTH Aachen University
+           and David R. Piegdon
+
+
+implementation of m-bounded visibly 1-counter automata, as described e.g. in
+
+ * Daniel Neider, Christof Löding:
+   Learning Visibly One-Counter Automata in Polynomial Time
+   [ http://sunsite.informatik.rwth-aachen.de/Publications/AIB/2010/2010-02.pdf ]
+
