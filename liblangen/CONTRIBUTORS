@@ -1,0 +1,17 @@
+$Id: CONTRIBUTORS 1193 2010-02-25 13:06:06Z davidpiegdon $
+
+
+Authors and contributors to the ``LANguageGENerator (liblangen)'' project
+-------------------------------------------------------------------------
+
+
+2008, 2009, 2010:
+
+David R. Piegdon <david-i2@piegdon.de>
+Carsten Kern (discussions)
+
+some of the algorithms used are based on the following papers:
+	* Jean-Marc Champarnaud and Thomas Paranthoen - Random Generation of DFAs
+	* F. Denis, A. Lemay and A. Terlutte - Learning regular languages using RFSAs
+
+

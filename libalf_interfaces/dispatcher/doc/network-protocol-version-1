@@ -1,0 +1,824 @@
+vim: tw=80 fo+=a
+
+
+PROTOCOL VERSION 1
+
+
+as of 2009-08-24, this is the current protocol for the dispatcher. for now, this
+protocol is a WORK-IN-PROGRESS until marked otherwise.
+
+================================================================================
+
+GENERAL PROTOCOL LAYOUT
+
+
+the protocol is based on int32_t in network byte order. if not marked different,
+any field is an int32_t and any size- or count-field gives the size or count of
+int32_t's.
+
+================================================================================
+
+ESTABLISHING A CONNECTION TO THE SERVER
+
+
+a client may establish a connection to the dispatcher via a socket to a
+tcp-port. the default port is 24940 ( 'al', hex 0x61 0x6c ). the port may be
+changed in the server via its command-line options.
+
+after connection, the server sends its capabilities (as if requested via the
+CAPA command) and goes into interactive mode.
+
+================================================================================
+
+INTERACTIVE MODE
+
+
+in interactive mode, the server waits for a command from the client. it then
+executes the command and sends the reply immediately. after that, it again goes
+into interactive mode.
+
+================================================================================
+
+DATA TYPES
+
+
+int32_t
+
+all fields are, if not marked otherwise, of int32_t (in network-byte order),
+i.e. a singed integer of 32 bits.
+
+
+errno
+
+error code, as in enum command_error_code in protocol.h. 0 if success.
+
+
+bool
+
+a bool is a int32_t interpreted in the following way: if 0, it is false.
+otherwise it is true.
+
+
+acceptance
+
+an acceptance is an int32_t interpreted in the following way:
+false = 0, unknown = 1, true = 2
+it corresponds to a libalf::extended_bool (defined in include/libalf/answer.h)
+
+
+object-id
+
+an object-id is an int32_t. any valid object will have an object-id >= 0. a
+negative object-id represents an invalid object or means "no object" or "error".
+
+
+char
+
+a char is an ascii-byte, i.e. it is 8 bits wide. it is used to represent
+standard, human readable text.
+
+
+character-string
+
+a character-string is a length field (int32_t) giving the number of chars,
+followed by the announced number of chars. the string is NOT \0-delimited!
+
+================================================================================
+
+PROTOCOL CONSTANTS
+
+
+see
+
+libalf/dispatcher/include/protocol.h
+
+and
+
+libalf/include/learning_algorithm.h (enum learning_algorithm::algorithm)
+
+and
+
+libalf/include/normalizer.h (enum normalizer::type)
+
+and
+
+libalf/include/conjecture.h (enum conjecture::type)
+
+================================================================================
+
+CLIENT COMMANDS
+
+
+a client command consists of the following:
+	enum client_command,
+then for each parameter:
+	parameter
+
+if a parameter is marked with ``[]'', it is of variable size. the size has to be
+submitted by the command itself somehow. (see e.g. CLCMD_OBJECT_COMMAND).
+otherwise the size of a parameter is exactly one int32_t.
+
+
+the following commands exist:
+
+
+request capabilities (CLCMD_REQ_CAPA)
+no parameters.
+server returns:
+	errno
+only if above was ERR_SUCCESS:
+	character-string ( space-separated list of capabilities,
+			   e.g. "protocol-version-1 tls auth langen" )
+
+
+request server/library version string (CLCMD_REQ_VERSION)
+no parameters.
+server returns:
+	errno (always ERR_SUCCESS)
+	character-string
+
+
+disconnect from server (CLCMD_DISCONNECT)
+no parameters.
+server returns:
+	errno (0 if server liked you)
+server then disconnects
+
+
+enable TLS/SSL (CLCMD_STARTTLS)
+parameters:
+	FIXME
+server returns:
+	errno
+only if above was ERR_SUCCESS:
+	FIXME
+
+
+authenticate connection (CLCMD_AUTH)
+parameters:
+	FIXME
+server returns:
+	errno
+only if above was ERR_SUCCESS:
+	FIXME
+
+
+create object (CLCMD_CREATE_OBJECT)
+parameters:
+	enum object_type
+	size of data (always, even if size is 0)
+	data[] (depending on object_type, see CREATING AN OBJECT)
+server returns:
+	errno
+only if above was ERR_SUCCESS:
+	object-id
+
+
+delete object (CLCMD_DELETE_OBJECT)
+parameters:
+	object-id
+server returns:
+	errno
+
+
+get object_type (CLCMD_GET_OBJECTTYPE)
+parameters:
+	object-id
+server returns:
+	errno
+only if above was ERR_SUCCESS:
+	object-type
+
+
+object command (CLCMD_OBJECT_COMMAND)
+parameters:
+	object-id,
+	command-id (depending on object_type one of
+		enum logger_command,
+		enum knowledgebase_command,
+		enum knowledgebase_iterator_command,
+		enum algorithm_command,
+		enum normalizer_command )
+	size of additional parameters (NOT count!),
+	additional parameters[]
+server returns:
+	errno
+only if above was ERR_SUCCESS:
+	data[] -- see specific command --
+
+
+count dispatcher-internal references of obj (CLCMD_COUNT_DISPATCHER_REFERENCES)
+parameters: 1
+	object-id
+server returns:
+	errno
+only if above was ERR_SUCCESS:
+	int reference_count
+
+
+say hello to carsten (CLCMD_HELLO_CARSTEN)
+parameters: 1
+	int (how often)
+server returns:
+	errno
+only if above was ERR_SUCCESS:
+	int (how often he said thanks)
+
+================================================================================
+
+CREATING AN OBJECT
+
+depengin on object_type, the following data is expected:
+
+OBJ_LOGGER:
+
+parameter size (not count): 0
+parameters: none.
+
+OBJ_KNOWLEDGEBASE:
+
+parameter size (not count): 0
+parameters: none.
+
+OBJ_KNOWLEDGEBASE_ITERATOR:
+
+parameter size (not count): 0
+parameters: none.
+
+OBJ_LEARNING_ALGORITHM:
+
+parameter size (not count): 2
+parameters:
+	enum libalf::learning_algorithm::algorithm
+			(see libalf/include/libalf/learning_algorithm.h)
+	alphabet_size
+
+OBJ_NORMALIZER:
+
+parameter size (not count): 1
+parameters:
+	enum libalf::normalizer::type
+			(see libalf/include/libalf/normalizer.h)
+
+================================================================================
+
+DELETING AN OBJECT
+
+
+NOTE that if you delete an object that is referenced by another object, or that
+is referring to another object, the reference is resolved and the object is
+removed from the referring/referenced object.
+
+e.g. if you have an algorithm-object that uses a logger-object, and delete the
+logger-object, the algorithm-object will automatically be notified and remove
+its reference to the logger-object.
+
+if you have a knowledgebase-iterator and remove the knowledgebase it is
+referring, the iterator will be invalidated (but still be an iterator object)
+
+================================================================================
+
+LOGGER COMMANDS
+
+
+receive and flush all data in logger (LOGGER_RECEIVE_AND_FLUSH)
+parameters: none.
+server returns:
+	character-string (logger content)
+
+
+set minimal log-level (LOGGER_SET_MIN_LOGLEVEL)
+parameters: 1
+	log-level (1 = error, 2 = warn, 3 = info,  4 = debug)
+server returns: nothing.
+
+
+enable logging of algorithm  (LOGGER_LOG_ALGORITHM)
+parameters: none.
+server returns: nothing.
+
+
+disable logging of algorithm (LOGGER_NOT_LOG_ALGORITHM)
+parameters: none.
+server returns: nothing.
+
+================================================================================
+
+KNOWLEDGEBASE COMMANDS
+
+
+serialize knowledgebase (KNOWLEDGEBASE_SERIALIZE)
+parameters: none
+server returns:
+	size,
+	serialized data[]
+
+
+deserialize knowledgebase (KNOWLEDGEBASE_DESERIALIZE)
+parameters: 2
+	size,
+	serialized data[]
+server returns: nothing. (see errno of object-command)
+
+
+// FIXME: assign (KNOWLEDGEBASE_ASSIGN)
+
+
+create dotfile (KNOWLEDGEBASE_TO_DOTFILE)
+parameters: none.
+server returns:
+	character-string
+
+
+create text-version (KNOWLEDGEBASE_TO_STRING)
+parameters: none.
+server returns:
+	character-string
+
+
+check if all queries are answered (KNOWLEDGEBASE_IS_ANSWERED)
+parameters: none.
+server returns:
+	bool (true if all queries are answered)
+
+
+check if no knowledge exists (KNOWLEDGEBASE_IS_EMPTY)
+parameters: none.
+server returns:
+	bool (true if empty)
+
+
+get largest symbol in knowledgebase (KNOWLEDGEBASE_GET_LARGEST_SYMBOL)
+parameters: none.
+server returns:
+	largest_symbol
+
+
+check and get largest symbol in knowledgebase (KNOWLEDGEBASE_CHECK_LARGEST_SYMBOL)
+parameters: none.
+server returns:
+	largest_symbol
+
+
+count queries (KNOWLEDGEBASE_COUNT_QUERIES)
+parameters: none
+server returns:
+	query-count
+
+
+count answers (KNOWLEDGEBASE_COUNT_ANSWERS)
+parameters: none
+server returns:
+	answer-count
+
+
+count resolved queries (KNOWLEDGEBASE_COUNT_RESOLVED_QUERIES)
+parameters: none.
+server returns:
+	count of resolved queries
+
+
+get memory usage of knowledgebase (KNOWLEDGEBASE_GET_MEMORY_USAGE)
+parameters: none.
+server returns:
+	int
+
+
+resolve query (KNOWLEDGEBASE_RESOLVE_QUERY)
+parameters: 2
+	size of word
+	word[]
+server returns:
+	bool (false if acceptance is unknown)
+only if above was true:
+	acceptance
+
+
+resolve or add query (KNOWLEDGEBASE_RESOLVE_OR_ADD_QUERY)
+parameters: 2
+	size of word
+	word[]
+server returns:
+	bool (false if acceptance is unknown. then, word is marked as required)
+only if above was true:
+	acceptance
+
+
+add knowledge (KNOWLEDGEBASE_ADD_KNOWLEDGE)
+parameters: 3
+	size of word
+	word[]
+	acceptance
+server returns:
+	bool (false if word was answered differently before)
+
+
+create query tree (KNOWLEDGEBASE_GET_QUERY_TREE)
+parameters: none.
+server returns:
+	object-id of newly created knowledgebase object
+
+
+merge other knowledgebase into this (KNOWLEDGEBASE_MERGE_TREE)
+parameters: 1
+	object-id of other knowledgebase_command
+server returns:
+	bool (false if the two bases are inconsistent)
+
+
+answer all queries in one chunk (KNOWLEDGEBASE_DESERIALIZE_QUERY_ACCEPTANCES)
+parameters: 2
+	size,
+	acceptances[] (in order of ascending timestamps of queries)
+server returns: nothing (see errno of object-command)
+
+
+get all queries in one chunk (KNOWLEDGEBASE_SERIALIZE_QUERIES)
+parameters: 0
+server returns:
+	words
+
+
+	where words is a sequence of
+		size of word
+		word[]
+	until size of word is -1
+
+
+get all knowledgebase entries in one chunk (KNOWLEDGEBASE_SERIALIZE_KNOWLEDGE)
+parameters: 0
+server returns:
+	words
+
+
+	where words is a sequence of
+		size of word
+		word[]
+	until size of word is -1
+
+
+get beginning-iterator (KNOWLEDGEBASE_BEGIN)
+parameters: none.
+server returns:
+	object-id of newly created knowledgebase iterator object
+
+
+get end-iterator (KNOWLEDGEBASE_END)
+parameters: none.
+server returns:
+	object-id of newly created knowledgebase iterator object
+		(NOTE that the END-iterator is NOT valid)
+
+
+get query-beginning-iterator (KNOWLEDGEBASE_QBEGIN)
+parameters: none.
+server returns:
+	object-id of newly created knowledgebase iterator object
+
+
+get query-end-iterator (KNOWLEDGEBASE_QEND)
+parameters: none.
+server returns:
+	object-id of newly created knowledgebase iterator object
+		(NOTE that the QEND-iterator is NOT valid)
+
+
+clear knowledgebase (KNOWLEDGEBASE_CLEAR)
+parameters: none.
+server returns: nothing.
+
+
+clear queries (KNOWLEDGEBASE_CLEAR_QUERIES)
+parameters: none.
+server returns: nothing.
+
+
+undo (KNOWLEDGEBASE_UNDO)
+parameters: 1.
+	count (number of steps)
+server returns:
+	bool (true if success)
+
+================================================================================
+
+KNOWLEDGEBASE ITERATOR COMMAND
+
+
+FIXME: aufbroeseln: valid vs. end; invalid catchen ?
+
+
+check if iterator is valid (may be invalid e.g. after deleting a
+knowledgebase-object) (KITERATOR_IS_VALID)
+parameters: none.
+server returns:
+	bool (false if iterator is invalid.
+		NOTE that an end-iterator is also NOT valid)
+
+
+assign other iterator to this one (KITERATOR_ASSIGN)
+parameters: 1
+	object-id of other knowledgebase-iterator
+server returns: nothing.
+
+
+compare to other iterator (KITERATOR_COMPARE)
+parameters: 1
+	object-id of other knowledgebase-iterator
+server returns:
+	bool (false if the two iterators are referencing different words
+
+
+check if referenced word is answered (KITERATOR_IS_ANSWERED)
+parameters: none.
+server returns:
+	bool (false if not answered)
+
+
+// FIXME: KITERATOR_IS_REQUIRED
+
+
+get referenced word (KITERATOR_GET_WORD)
+parameters: none.
+server returns:
+	size of word
+	word[]
+
+
+get answer to referenced word (KITERATOR_GET_ANSWER)
+parameters: none.
+server returns:
+	bool (false if acceptance is unknown)
+only if above was true:
+	acceptance
+
+
+interator++ (KITERATOR_NEXT)
+parameters: none.
+server returns: nothing.
+
+
+set answer to referenced word (KITERATOR_ANSWER)
+parameters: 1
+	acceptance
+server returns:
+	bool (false if node was answered differently before)
+
+================================================================================
+
+LEARNING_ALGORITHM COMMANDS
+
+
+serialize algorithm (LEARNING_ALGORITHM_SERIALIZE)
+parameters: none
+server returns:
+	size,
+	serialized data[]
+
+
+deserialize algorithm (LEARNING_ALGORITHM_DESERIALIZE)
+parameters: 2
+	size,
+	serialized data[]
+server returns: nothing. (see errno of object-command)
+
+
+create text-version (LEARNING_ALGORITHM_TO_STRING)
+parameters: none.
+server returns:
+	character-string
+
+
+deserialize algorithm-specific parameters (LEARNING_ALGORITHM_DESERIALIZE_MAGIC) (see -> MAGICS)
+parameters: 2
+	size
+	serialized data[]
+server returns:
+	size
+	serialized data[]
+
+
+get name of learning algorithm type (LEARNING_ALGORITHM_GET_NAME)
+parameters: none.
+returns:
+	character-string
+
+
+associate logger with algorithm (LEARNING_ALGORITHM_ASSOCIATE_LOGGER)
+parameters: 1
+	object-id (of logger)
+server returns: nothing.
+
+
+remove logger from algorithm (LEARNING_ALGORITHM_REMOVE_LOGGER)
+parameters: none.
+server returns: nothing.
+
+
+associate knowledgebase with algorithm (LEARNING_ALGORITHM_SET_KNOWLEDGE_SOURCE)
+parameters: 1
+	object-id (of knowledgebase)
+server returns: nothing.
+
+
+get knowledgebase from algorithm (LEARNING_ALGORITHM_GET_KNOWLEDGE_SOURCE)
+parameters: none.
+server returns:
+	object-id (of knowledgebase)
+
+
+associate normalizer with algorithm (LEARNING_ALGORITHM_SET_NORMALIZER)
+parameters: 1
+	object-id (of normalizer)
+server returns: nothing.
+
+
+get normalizer from algorithm (LEARNING_ALGORITHM_GET_NORMALIZER)
+parameters: none.
+server returns:
+	object-id (of normalizer)
+
+
+remove normalizer from algorithm (LEARNING_ALGORITHM_UNSET_NORMALIZER)
+parameters: none.
+server returns: nothing.
+
+
+get memory statistics (LEARNING_ALGORITHM_GET_MEMORY_STATISTICS)
+parameters: none.
+server returns:
+	serialized memory stats (first int is size-1)
+
+	serialized memory stats is:
+		6 (size)
+		bytes
+		members
+		words
+		upper_table
+		lower_table
+		columns
+
+
+get timing statistics (LEARNING_ALGORITHM_GET_TIMING_STATISTICS)
+parameters: none.
+server returns:
+	serialized timing stats[] (first int is size-1)
+
+	serialized timint stats is:
+		4 (size)
+		user_sec
+		user_usec
+		sys_sec
+		sys_usec
+
+
+enable timing (LEARNING_ALGORITHM_ENABLE_TIMING)
+parameters: none.
+server returns: nothing.
+
+
+disable diming (LEARNING_ALGORITHM_DISABLE_TIMING)
+parameters: none.
+server returns: nothing.
+
+
+reset timing information (LEARNING_ALGORITHM_RESET_TIMING)
+parameters: none.
+server returns: nothing.
+
+
+get alphabet_size of algorithm (LEARNING_ALGORITHM_GET_ALPHABET_SIZE)
+parameters: none.
+server returns:
+	alphabet_size
+
+
+increase alphabet_size (LEARNING_ALGORITHM_INCREASE_ALPHABET_SIZE)
+parameters: 1
+	new alphabet_size
+server returns: nothing.
+
+
+check if conjecture is ready (LEARNING_ALGORITHM_CONJECTURE_READY)
+parameters: none.
+server returns:
+	bool (false if not)
+
+
+advance algorithm (LEARNING_ALGORITHM_ADVANCE)
+parameters: none.
+server returns:
+	bool (true if hypothesis is ready, false if queries need to be answered)
+only if above was true:
+	conjecture-type
+	serialized conjecture[] (first int is size-1)
+
+
+	a serialized basic_automaton is:
+		size of upcoming data (whole size - 1)
+		int: 1 if deterministic, 0 if not.
+		alphabet_size
+		state count
+		number of initial states
+		initial states[]
+		number of final states
+		final states[]
+		number of transitions
+		transitions[]
+
+		where a single transition consists of:
+			source-state
+			label
+			destination-state
+
+
+add counterexample (LEARNING_ALGORITHM_ADD_COUNTEREXAMPLE)
+parameters: 2
+	size of word
+	word[]
+server returns: nothing. (object-command fails if add_counterexample fails.)
+
+
+check if algorithm supports sync (LEARNING_ALGORITHM_SUPPORTS_SYNC)
+parameters: none.
+server returns:
+	bool (false if algorithm does not support sync)
+
+
+sync algorithm to knowledgebase (LEARNING_ALGORITHM_SYNC_TO_KNOWLEDGEBASE)
+parameters: none.
+server returns:	nothing (see errno of object command)
+
+
+================================================================================
+
+NORMALIZER COMMANDS
+
+
+serialize normalizer (NORMALIZER_SERIALIZE)
+parameters: none
+server returns:
+	size,
+	serialized data[]
+
+
+deserialize normalizer (NORMALIZER_DESERIALIZE)
+parameters: 2
+	size,
+	serialized data[]
+server returns: nothing. (see errno of object-command)
+
+
+deserialize normalizer extension (NORMALIZER_DESERIALIZE_EXTENSION)
+parameters: 2
+	size,
+	serialized data[]
+server returns: nothing. (see errno of object-command)
+
+
+get type of normalizer (NORMALIZER_GET_TYPE)
+parameters: none.
+server returns:
+	type (see enum normalizer::normalizer_type
+              in include/libalf/normalizer.h)
+
+
+calculate prefix-normal form of a word (NORMALIZER_NORMALIZE_A_WORD_PNF)
+parameters: 2
+	size of word,
+	word[]
+server returns:
+	bool (true if word was normalized to bottom)
+only if above was false:
+	size of word,
+	word[]
+
+
+calculate suffix-normal form of a word (NORMALIZER_NORMALIZE_A_WORD_SNF)
+parameters: 2
+	size of word,
+	word[]
+server returns:
+	bool (true if word was normalized to bottom)
+only if above was false:
+	size of word,
+	word[]
+
+================================================================================
+
+MAGICS
+
+this is a list of magics of specific algorithms:
+
+ALG_BIERMANN_ORIGINAL:
+
+	send:
+		bool: set? (0 if this is a query, 1 if this sets the value
+	only if above was true:
+		nondeterminism [unsigned int]
+
+	always return:
+		nondeterminism [unsigned int] (current value)
+
+	NOTE that after construction of a new ALG_BIERMANN_ORIGINAL,
+	nondeterminism is set to 1.
+

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." default="build" name="libalf-demo">
+    <property name="target" value="1.6"/>
+    <property name="source" value="1.6"/>
+	<property name="java.library.path" value="."/>
+	<target name="clean">
+        <delete file="Offline.class"/>
+		<delete file="Online.class"/>
+    </target>
+	<target name="build" if="PREFIX">
+	    <javac srcdir="." destdir="." source="${source}" target="${target}">
+			<classpath>
+				<pathelement path="${PREFIX}/jalf.jar"/>
+			</classpath>
+        </javac>
+	</target>
+</project>

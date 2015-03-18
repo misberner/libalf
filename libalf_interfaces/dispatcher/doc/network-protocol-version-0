@@ -1,0 +1,582 @@
+
+
+NOTE: this procotol version is obsolete.
+the latest dispatcher implementing it is svn-r354.
+
+PROTOCOL VERSION 0
+
+
+PROTOCOL LAYOUT
+===============
+
+protocol is int32_t based in network byte order
+
+server listens on socket.
+
+client connects.
+
+server forks and sends CAPA (like in "request server capabilities")
+
+now server is waiting for client commands
+
+
+CLIENT COMMANDS
+===============
+
+UNRELATED COMMANDS:
+	disconnect
+		client sends
+			CM_DISCONNECT
+		server answers
+			CM_ACK_DISCONNECT
+		server closes socket and dies.
+
+	request server capabilities
+		client sends
+			CM_REQ_CAPA
+		server answers
+			SM_ACK_CAPA,
+			protocol version (0 for this protocol)
+			count,
+			{
+				capabilities[]
+			} (count times)
+
+	request dispatcher and libalf version string
+		client sends
+			CM_REQ_VERSION
+		server answers
+			SM_ACK_VERSION
+			int length of text (in bytes!)
+			text[]
+
+	STARTTLS
+		only applicable if server supports STARTTLS
+		(see section CAPABILITIES)
+		client sends
+			CM_STARTTLS
+		server answers
+			SM_ACK_STARTTLS
+		server switches to TLS mode
+
+
+
+SESSION-RELATED COMMANDS:
+	request session
+		client sends
+			CM_REQ_SESSION
+			algorithm
+			alphabet size (initial)
+		server answers
+			SM_ACK_SESSION,
+			session id
+
+	set modalities
+		client sends
+			CM_SES_SET_MODALITIES
+			session id
+			count
+			{
+				modality
+			} (count times)
+		server answers
+			SM_SES_ACK_MODALITIES
+			bool ok (true if success, false otherwise)
+
+	request session-status
+	// please note that to store a complete session,
+	// you will have to store the session-knowledge as well
+		client sends
+			CM_SES_REQ_STATUS
+			session id
+		server answers
+			SM_SES_ACK_REQ_STATUS
+			status[]
+	set session-status
+		client sends
+			CM_SES_SET_STATUS
+			session id
+			status[]
+		server answers
+			SM_SES_ACK_SET_STATUS
+			bool ok (true if success, false otherwise)
+
+	request session-knowledge
+		client sends
+			CM_SES_REQ_KNOWLEDGE
+			session id
+		server answers
+			SM_SES_ACK_REQ_KNOWLEDGE
+			knowledgebase[]
+	set session-knowledge
+		client sends
+			CM_SES_SET_KNOWLEDGE
+			bool	// clear old knowledge? if
+				// false, new knowledge will be
+				// merged into old knowledge.
+				// in case of inconsistencies,
+				// false will be returned
+			knowledgebase[]
+		server answers
+			SM_SES_ACK_SET_KNOWLEDGE
+			bool
+
+	conjecture
+	(true, if a hypothesis can be resolved from current state)
+		client sends
+			CM_SES_CONJECTURE
+			session id
+		server answers
+			SM_SES_CONJECTURE
+			bool
+
+	advance
+		client sends
+			CM_SES_ADVANCE
+			session id
+		server answers
+			A)
+				SM_SES_ACK_ADVANCE_AUTOMATON
+				automaton[]
+		or server answers
+			B)
+				SM_SES_ACK_ADVANCE_QUERIES
+				int query count
+				query tree[]
+
+	answer query tree
+		client sends
+			CM_SES_ANSWER_QUERIES
+			session id
+			answer for query tree[]
+		server answers
+			SM_SES_ACK_ANSWER_QUERIES
+
+	give counter-examples
+		client sends
+			CM_SES_GIVE_COUNTEREXAMPLES
+			session id
+			count
+			{
+				serialized word[]
+			} (count times)
+		server answers:
+			SM_SES_ACK_COUNTEREXAMPLES
+			bool ok (true if success, false otherwise)
+
+	get current alphabet size
+		client sends
+			CM_SES_REQ_ALPHABET_SIZE
+			session id
+		server answers
+			SM_SES_ACK_ALPHABET_SIZE
+			alphabet size
+
+	set alphabet size
+	// if new size is <= old size, old size will remain
+		client sends
+			CM_SES_SET_ALPHABET_SIZE
+			session id
+			new size
+		server answers
+			SM_SES_ACK_SET_ALPHABET_SIZE
+
+	inc alphabet size
+		client sends
+			CM_SES_INC_ALPHABET_SIZE
+			session id
+			count by how much to increase alphabet
+		server answers
+			SM_SES_ACK_INC_ALPHABET_SIZE
+
+	request statistics
+		client sends
+			CM_SES_REQ_STATS
+			session id
+		server answers
+			SM_SES_ACK_REQ_STATS
+			statistics[]
+
+	set statistics
+		client sends
+			CM_SES_SET_STATS
+			session id
+			statistics[]
+		server answers
+			SM_SES_ACK_SET_STATS
+
+	receive and flush log
+		client sends
+			CM_SES_REQ_LOG
+			session id
+		server answers
+			SM_SES_ACK_LOG
+			int length of text (in bytes!)
+			text[]
+
+	undo latest query-answers or latest counter-example
+		client sends
+			CM_SES_UNDO
+			session id
+			undo count
+		server answers
+			SM_SES_ACK_UNDO
+			bool ok
+
+
+DEBUGGING COMMANDS:
+	request table to be logged to logger (note loglevel LOGGER_DEBUG)
+		client sends
+			CM_SES_LOG_TABLE
+			session id
+		server answers
+			SM_SES_ACK_LOG_TABLE
+
+	normalize word with sessions current normalizer
+		client sends
+			CM_SES_NORMALIZE_WORD
+			session id (for choice of normalizer)
+			bool prefix normal form (set to false for suffix normal form)
+			serialized word[]
+		server answers
+			SM_SES_ACK_NORMALIZE_WORD
+			bool bottom
+			serialized word[] (may be obscure if bottom = true)
+	request dotfile of knowledgebase to be logged to logger (note loglevel LOGGER_DEBUG)
+		client sends
+			CM_SES_LOG_KNOWLEDGE_DOTFILE
+			sessions id
+		server answers
+			SM_SES_ACK_LOG_KNOWLEDGE_DOTFILE
+
+
+
+
+DATA FIELDS
+===========
+
+enum client_message {
+	CM_DISCONNECT = 0,
+
+	CM_REQ_CAPA = 1,
+
+	CM_REQ_VERSION = 2,
+
+	CM_STARTTLS = 10,
+
+	CM_REQ_SESSION = 20,
+
+	CM_SES_SET_MODALITIES = 21,
+
+	CM_SES_REQ_STATUS = 22,
+	CM_SES_SET_STATUS = 23,
+
+	CM_SES_REQ_KNOWLEDGE = 24,
+	CM_SES_SET_KNOWLEDGE = 25,
+
+	CM_SES_CONJECTURE = 26,
+
+	CM_SES_ADVANCE = 27,
+
+	CM_SES_ANSWER_QUERIES = 29,
+
+	CM_SES_GIVE_COUNTEREXAMPLES = 30,
+
+	CM_SES_REQ_ALPHABET_SIZE = 32,
+
+	CM_SES_SET_ALPHABET_SIZE = 33,
+
+	CM_SES_INC_ALPHABET_SIZE = 34,
+
+	CM_SES_REQ_STATS = 35,
+	CM_SES_SET_STATS = 36,
+
+	CM_SES_REQ_LOG = 37,
+
+	CM_SES_UNDO = 50,
+
+	CM_SES_LOG_TABLE = 100,
+	CM_SES_NORMALIZE_WORD = 101,
+	CM_SES_LOG_KNOWLEDGE_DOTFILE = 102
+}
+
+// (enum client_message corresponds to dispatcher::client_message)
+
+enum server_message {
+	SM_ACK_DISCONNECT = 0,
+
+	SM_ACK_CAPA = 1,
+
+	SM_ACK_VERSION = 2,
+
+	SM_ACK_STATTLS = 10
+
+	SM_ACK_SESSION = 20,
+
+	SM_SES_ACK_MODALITIES = 21,
+
+	SM_SES_ACK_REQ_STATUS = 22,
+	SM_SES_ACK_SET_STATUS = 23,
+
+	SM_SES_ACK_REQ_KNOWLEDGE = 24,
+	SM_SES_ACK_SET_KNOWLEDGE = 25,
+
+	SM_SES_CONJECTURE = 26,
+
+	SM_SES_ACK_ADVANCE_AUTOMATON = 27,
+	SM_SES_ACK_ADVANCE_QUERIES = 28,
+
+	SM_SES_ACK_ANSWER_QUERIES = 29,
+	
+	SM_SES_ACK_COUNTEREXAMPLES = 30,
+
+	SM_SES_ACK_ALPHABET_SIZE = 32,
+
+	SM_SES_ACK_SET_ALPHABET_SIZE = 33,
+
+	SM_SES_ACK_INC_ALPHABET_SIZE = 34,
+
+	SM_SES_ACK_REQ_STATS = 35,
+	SM_SES_ACK_SET_STATS = 36,
+
+	SM_SES_ACK_LOG = 37,
+
+	SM_SES_ACK_UNDO = 50,
+	SM_SES_ACK_REDO = 51,
+
+	SM_SES_ACK_LOG_TABLE = 100,
+	SM_SES_ACK_NORMALIZE_WORD = 101
+	SM_SES_ACK_LOG_KNOWLEDGE_DOTFILE = 102
+}
+
+// (enum server_message corresponds to dispatcher::server_message)
+
+enum algorithm {
+	ALG_NONE = 0,
+	ALG_ANGLUIN = 1,
+	ALG_BIERMANN = 2,
+	ALG_BIERMANN_ANGLUIN = 3,
+	ALG_NL_STAR = 4
+}
+
+// (enum algorithm corresponds to enum libalf::learning_algorithm::algorithm)
+
+int32_t capabilities [] {
+	length of upcoming data (excluding this field)
+	enum capability_type
+	data []
+}
+
+enum capability_type {
+	CAPA_STARTTLS = 0
+}
+
+// (enum capability_type corresponds to dispatcher::capability_type)
+
+int32_t status [] {
+	length of upcoming data (excluding this field)
+	enum algorithm
+	data []
+} // you should just take the whole data as a blank structure
+  // you save to disk and reload later on. 
+  // total order and knowledgebase are not included,
+  // you will need to set them again.
+
+int32_t modality [] {
+	length (exluding this field, including type field)
+	enum modality_type
+	data[]
+}
+
+enum modality_type {
+	MODALITY_SET_NORMALIZER = 0,
+	MODALITY_EXTEND_NORMALIZER = 1,
+	MODALITY_SET_LOGLEVEL = 2,
+	MODALITY_SET_LOG_ALGORITHM = 3
+}
+
+// (enum modality_type corresponds to enum dispatcher::modality_type)
+
+// for MODALITY_SET_NORMALIZER, the data consists of:
+
+int32_t normalizer[] {
+	length of upcoming data
+	enum normalizer_type
+	serialized normalizer
+}
+
+// where (corresponding to libalf::normalizer::type)
+
+enum normalizer_type {
+	NORMALIZER_NONE = 0,
+	NORMALIZER_MSC = 1
+}
+
+// and for serialized normalizer one of:
+
+serialized NORMALIZER_NONE {
+	// nothing
+}
+
+to disable the total order function after having set it, just set
+a new total order function of type NORAMLIZER_NONE and length zero.
+
+serialized NORAMLIZER_MSC {
+	length of total order
+	total order
+	length of message-process-matching
+	message-process-matching
+	length of message-buffer-matching
+	message-buffer-matching
+	max buffer length
+}
+
+// the MSC normalizer consists of 4 distinct fields:
+// the total order, the message-process matching relation, the
+// message-buffer matching relation and the maximal buffer size.
+
+// the total order is a function mapping each symbol of the alphabet
+// to its position in a total order. thus to get the ordered position
+// of a label l, we use total_order[l].
+// furthermore the total order implies the following:
+// for every label n, if total_order[n]%2==0 then it is a send-event and 
+// there exists a message m with total_order[m] = total_order[n]+1,
+// total_order[m]%2==1 that is the corresponding receive event of the
+// receiving process (thus total_order[n] / 2 == total_order[m] / 2)
+//
+// the message-process matching (MPM) relation matches an event (or label) l
+// to its corresponding sending process MPM[l]
+//
+// the message-buffer-matching (MBM) relation matches an event (or label) l
+// to a buffer MBM[l] corresponding to the tuple (sender, receiver)
+// 
+// the max buffer size denotes how many messages there may be at most at
+// any time in a single buffer. this number increases once a sent-event
+// has happened and decreases once a receive-event has happened.
+// use any number <= 0 to denote infinite buffers.
+// 
+
+
+// for MODALITY_EXTEND_NORMALIZER, the data consists of:
+
+int32_t normalizer_extension[] {
+	length of upcoming data
+
+	FIXME
+
+}
+
+// for MODALITY_SET_LOGLEVEL, the data consists of a single int of
+// type enum logger_loglevel:
+
+enum logger_loglevel {
+	LOGGER_ERROR = 1;
+	LOGGER_WARN = 2;
+	LOGGER_INFO = 3;
+	LOGGER_DEBUG = 4;
+}
+(enum logger_loglevel corresponds to enum libalf::logger_loglevel)
+
+// for MODALITY_SET_LOG_ALGORITHM, the data consists of a single int.
+// if this int is 0 (false), algorithm logging is disabled. otherwise
+// (true), it is enabled.
+
+
+
+int32_t automaton [] {
+	length of upcoming data (excluding this field)
+	alphabet size
+	state count
+	number of initial states
+	initial states []
+	number of final states
+	final states []
+	number of transitions
+	{
+		transition source
+		transition label (-1 for epsilon)
+		transition destination
+	}
+}
+
+int32_t query tree[]
+this is a knowledgebase[] consisting only of queries.
+NOTE the timestamp-value (1 .. n) of each query denotes the order for your answer!
+
+int32_t knowledgebase[] {
+	length of upcoming data (excluding this field)
+	recursive node definition of root
+}
+
+// where a recursive node definition looks like the following:
+{
+	label of node
+	time-label (for undo-operations and query-ordering)
+	enum knowledgebase_node_status
+	if answered, answer (otherwise this field is skipped!)
+	number of child nodes
+	recursive node definition of all child nodes
+}
+
+// the root node has a label of -1 (epsilon) (the -1 may be lost due to
+// network-byte-order transformations! just ignore the root-label!).
+//
+// a node corresponds to a word. this word is the concat of all labels of all
+// nodes leading from the root node to this node, excluding any epsilon (-1)
+// and INCLUDING the label of the node itself.
+// the knowledge about a word/node is defined by a status and possibly an answer:
+// the status may be: ignore (we don't yet care about this knowledge), required
+// (we need this knowledge, this is used for a query) and answered (we already
+// have this knowledge). if answered, an answer is given. otherwise, the answer-
+// field is skipped.
+
+enum knowledgebase_node_status {
+	NODE_IGNORE			= 0,
+	NODE_REQUIRED			= 1,
+	NODE_ANSWERED			= 2
+}
+
+// (enum knowledgebase_node_status corresponds to knowledgebase::node::status_e)
+
+enum acceptance {
+	ACCEPTANCE_FALSE		= 0,
+	ACCEPTANCE_UNKNOWN		= 1,
+	ACCEPTANCE_TRUE			= 2
+}
+
+// (enum acceptance corresponds to a serialized libalf::extended_bool)
+
+
+int32_t answer for query tree [] {
+	length of upcoming data (excluding this field)
+	enum acceptance[]		// this is a list of answers for all queries from
+					// the query-tree. NOTE that you have to answer
+					// in the order given by the timestamp-value of
+					// the queries (1 .. n)
+}
+
+// note on answer for structured query tree:
+// the answers have to correspond do the last SQT received from
+// the server: for each member in the SQT, the acceptances for
+// the word and its prefixes are concatenated. the resulting
+// string of acceptances is prefixed by its length and sent
+// like above.
+
+int32_t statistics [] {
+	length of upcoming data (excluding this field)
+	table size: bytes
+	table size: members
+	table size: words
+	table size: upper table
+	table size: lower table
+	table size: columns
+	membership query count
+	uniq membership query count
+	equivalence query count
+}
+
+int32_t serialized word [] {
+	length
+	data[]
+}
+

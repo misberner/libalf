@@ -1,0 +1,15 @@
+
+NOTES
+=====
+
+TODO
+====
+
+
+- Antichains: implement faster variant using data-structures as in nfa_antichains from stefffan.
+  then check for correctness.
+
+- removal of epsilon-transitions in NFA
+
+- check that _init and _fini are working (linker stuff...)
+

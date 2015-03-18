@@ -1,0 +1,30 @@
+Last change: 11.09.2009
+
+General:
+====================
+
+* Tests, ob die Portierung fehlerfrei war.
+
+* Die Konstruktoren der Lernalgorithmen, Knowledgebase und Logger private machen.
+
+* JavaDoc anpassen.
+
+* Neues jlangen-Projekt anlegen.
+
+* Implementierung Normalizer?
+
+
+JNI:
+====================
+
+* Iterator implementieren.
+
+
+Dispatcher:
+====================
+
+* Hinzufügen von void kill() und boolean isAlive() zu den Dispatcher Objekten (siehe JNIObject.java).
+    - Dann übertragen der Methoden ins Interface.
+	- Methoden müssen eine isDead-Exception werfen, wenn das Objekt bereits tot ist, aber Methoden aufgerufen werden.
+	
+* Check parameter count in DispatcherFactroy (siehe JNIFactory.java).
