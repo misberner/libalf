@@ -764,7 +764,7 @@ std::basic_string<int32_t> nondeterministic_finite_automaton::serialize() const
 	ret += 0;
 
 	// is not deterministic
-	ret += htonl(0);
+	ret += static_cast<int32_t>(htonl(0));
 	// alphabet size
 	ret += htonl(nfa_p->alphabet_size);
 	// state count
