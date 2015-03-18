@@ -18,14 +18,7 @@ VERSION?=v${VERSIONTAG}
 LIBVERSIONTAG?=.${VERSIONTAG}
 endif
 
-# Choose OS
-ifeq (${OS}, Windows_NT)
-  LDFLAGS += -lws2_32
-  TARGET=AMoRE.dll
-else
-  TARGET=libAMoRE.so
-  CFLAGS += -DUNIX -DLINUX
-endif
+TARGET=${LIBPREFIX}AMoRE.${LIBEXT}
 
 INSTALL_SHARED_NAME=${TARGET}${LIBVERSIONTAG}
 INSTALL_STATIC_NAME=libAMoRE.a${LIBVERSIONTAG}
@@ -64,14 +57,11 @@ libtest: libtest.c libAMoRE.so
 libAMoRE.a: $(OBJ)
 	${AR} crs $@ $?
 
-libAMoRE.so: $(OBJ)
+${TARGET}: $(OBJ)
 	${CC} ${LDFLAGS} -o $@ $?
 
-AMoRE.dll: $(OBJ)
-	${CC} ${LDFLAGS} -o $@ $?
-	
 clean:
-	-rm -f *~ */*~ $(OBJ) libAMoRE.a libAMoRE.so AMoRE.dll libtest
+	-rm -f *~ */*~ $(OBJ) libAMoRE.a ${TARGET} libtest
 	-rm -Rf docs/html docs/latex 
 
 doc:
@@ -82,15 +72,15 @@ install: installHeaders all
 	@echo
 	@echo installing libAMoRE library to ${INCLUDEDIR} ...
 	@echo
-	-install -v -m 755 -d ${LIBDIR}
-	install -T -v -m 755 ${TARGET} ${LIBDIR}/${INSTALL_SHARED_NAME}
-	install -T -v -m 755 libAMoRE.a ${LIBDIR}/${INSTALL_STATIC_NAME}
+	-${INSTALL} -v -m 755 -d ${LIBDIR}
+	${INSTALL} -T -v -m 755 ${TARGET} ${LIBDIR}/${INSTALL_SHARED_NAME}
+	${INSTALL} -T -v -m 755 libAMoRE.a ${LIBDIR}/${INSTALL_STATIC_NAME}
 	# symlinks
 	-rm -f ${LIBDIR}/${TARGET}
 	ln -s ${LIBDIR}/${INSTALL_SHARED_NAME} ${LIBDIR}/${TARGET}
 	-rm -f ${LIBDIR}/libAMoRE.a
 	ln -s ${LIBDIR}/${INSTALL_STATIC_NAME} ${LIBDIR}/libAMoRE.a
-	-test `id -u` -eq 0 && /sbin/ldconfig; true
+	-${RUN_LDCONFIG}
 
 
 uninstall: uninstallHeaders
@@ -101,15 +91,15 @@ uninstall: uninstallHeaders
 	rm -f ${LIBDIR}/${INSTALL_STATIC_NAME}
 	rm -f ${LIBDIR}/${TARGET}
 	rm -f ${LIBDIR}/libAMoRE.a
-	-test `id -u` -eq 0 && /sbin/ldconfig; true
+	-${RUN_LDCONFIG}
 
 
 installHeaders:
 	@echo
 	@echo installing libAMoRE headers to ${INCLUDEDIR} ...
 	@echo
-	install -v -m 755 -d ${INCLUDEDIR}/amore
-	install -v -m 644 include/amore/* ${INCLUDEDIR}/amore
+	${INSTALL} -v -m 755 -d ${INCLUDEDIR}/amore
+	${INSTALL} -v -m 644 include/amore/* ${INCLUDEDIR}/amore
 uninstallHeaders:
 	@echo
 	@echo removing libAMoRE headers from ${INCLUDEDIR} ...
@@ -121,8 +111,8 @@ installDocs: doc
 	@echo
 	@echo installing libAMoRE doc to ${DOCDIR} ...
 	@echo
-	install -v -m 755 -d $(DOCDIR)/libAMoRE/html 
-	install -v -m 644 docs/html/* $(DOCDIR)/libAMoRE/html
+	${INSTALL} -v -m 755 -d $(DOCDIR)/libAMoRE/html 
+	${INSTALL} -v -m 644 docs/html/* $(DOCDIR)/libAMoRE/html
 uninstallDocs:
 	@echo
 	@echo removing libAMoRE doc from ${DOCDIR} ...

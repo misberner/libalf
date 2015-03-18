@@ -25,7 +25,7 @@ extern "C" {
 
 #include "typedefs.h"		/* basic type definitions */
 
-#include <malloc.h>		/* calloc */
+#include <stdlib.h>		/* calloc */
 #include <setjmp.h>		/* calloc */
 #include <amore/buffer.h>	/* newbuf */
 extern jmp_buf _jmp;

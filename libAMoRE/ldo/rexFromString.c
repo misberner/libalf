@@ -18,7 +18,9 @@
  */
 
 #include <amore/rexFromString.h>
+#ifdef __GLIBC__
 #include <error.h>
+#endif
 
 #include <amore/parse.h>
 
