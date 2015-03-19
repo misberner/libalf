@@ -27,9 +27,10 @@
 
 #if defined(unix) || defined(__unix) || defined(__unix__) || defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 #define PLATFORM_UNIX
-# ifndef LIBAMORE
-#  include <curses.h>
-# endif
+// not needed?
+// # ifndef LIBAMORE
+// #  include <curses.h>
+// # endif
 # include <sys/param.h>
 #elif defined(DOS) || defined(_WIN32)
 # include <malloc.h>
