@@ -3,4 +3,5 @@
 *.dll
 *.so
 *.dylib
+/install
 
