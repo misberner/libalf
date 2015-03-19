@@ -43,8 +43,8 @@ install: dispatcher
 	@echo
 	@echo installing dispatcher to ${BINDIR} ...
 	@echo
-	-install -v -m 755 -d ${BINDIR}
-	install -v -m 755 dispatcher ${BINDIR}
+	-${INSTALL} -v -m 755 -d ${BINDIR}
+	${INSTALL} -v -m 755 dispatcher ${BINDIR}
 
 uninstall:
 	@echo

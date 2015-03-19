@@ -37,8 +37,8 @@ install: jalf.jar
 	@echo
 	@echo installing jalf.jar to ${JARDIR} ...
 	@echo
-	-install -v -m 755 -d ${JARDIR}
-	install -T -v -m 755 jalf.jar ${JARDIR}/${INSTALL_JAR_NAME}
+	-${INSTALL} -v -m 755 -d ${JARDIR}
+	${INSTALL} -T -v -m 755 jalf.jar ${JARDIR}/${INSTALL_JAR_NAME}
 	# symlinks
 	-rm -f ${JARDIR}/jalf.jar
 	ln -s ${JARDIR}/${INSTALL_JAR_NAME} ${JARDIR}/jalf.jar

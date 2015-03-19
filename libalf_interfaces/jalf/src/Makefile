@@ -18,23 +18,19 @@ VERSION?=v${VERSIONTAG}
 LIBVERSIONTAG?=.${VERSIONTAG}
 endif
 
+JAVA_INCLUDE?=${JAVA_HOME}/include
+
 # Choose OS
 ifeq (${OS}, Windows_NT)
-  # FOR WINDOWS:
-  # - use MinGW (tested with MinGW-GCC 3.4)
-  # - get LibGMP (e.g. http://progressive-living.com/opensource/gmp/gmp-4.2.2_win_lib_h.zip)
-  # - set JAVA_INCLUDE (at the top of this file) to your JDK include path
-  #   When cross-compiling, make sure that you point to the include path of the JDK of the target system!
-  JAVA_INCLUDE ?= c:\Progra~1\Java\JDK16~1.0_1\include
   CPPFLAGS += -I${JAVA_INCLUDE}/win32
-  #LDFLAGS += -lws2_32
-  TARGET=jalf.dll
-else
-  # assuming linux
-  JAVA_INCLUDE ?= ${JAVA_HOME}/include
+else ifeq (${OS}, Linux)
   CPPFLAGS += -I${JAVA_INCLUDE}/linux
-  TARGET=libjalf.so
+else ifeq (${OS}, Darwin)
+  CPPFLAGS += -I${JAVA_INCLUDE}/darwin
 endif
+
+TARGET=${LIBPREFIX}jalf.${LIBEXT}
+TARGET_DYNAMIC=${LIBPREFIX}jalf-dynamic.${LIBEXT}
 
 INSTALL_SHARED_NAME=${TARGET}${LIBVERSIONTAG}
 
@@ -64,25 +60,28 @@ OBJECTS =	jni_tools.o					\
 
 all:	${TARGET}
 
+dynamic: ${TARGET_DYNAMIC}
+
 test_java_includes:
 	@echo
 	@echo "Testing if JAVA include directory (env JAVA_INCLUDE) is set correctly...."
+	echo ${JAVA_HOME}
 	test -d ${JAVA_INCLUDE}
 	@echo
 
 clean:
-	-rm -f *.o libjalf.so jalf.dll
+	-rm -f *.o ${TARGET} ${TARGET_DYNAMIC}
 
 install: all
 	@echo
 	@echo installing ${TARGET} to ${LIBDIR} ...
 	@echo
-	-install -v -m 755 -d ${LIBDIR}
-	install -T -v -m 755 ${TARGET} ${LIBDIR}/${INSTALL_SHARED_NAME}
+	-${INSTALL} -v -m 755 -d ${LIBDIR}
+	${INSTALL} -T -v -m 755 ${TARGET} ${LIBDIR}/${INSTALL_SHARED_NAME}
 	# symlinks
 	-rm -f ${LIBDIR}/${TARGET}
 	ln -s ${LIBDIR}/${INSTALL_SHARED_NAME} ${LIBDIR}/${TARGET}
-	-test `id -u` -eq 0 && /sbin/ldconfig; true
+	-${RUN_LDCONFIG}
 
 uninstall:
 	@echo
@@ -90,23 +89,14 @@ uninstall:
 	@echo
 	rm -f ${LIBDIR}/${INSTALL_SHARED_NAME}
 	rm -f ${LIBDIR}/${TARGET}
-	-test `id -u` -eq 0 && /sbin/ldconfig; true
+	-${RUN_LDCONFIG}
 
 
 # Linux targets
-libjalf.so: test_java_includes ${OBJECTS}
-	${CXX} ${LDFLAGS} -Xlinker -soname=libjalf ${OBJECTS} ${LIBDIR}/libalf.a -o libjalf.so
+${TARGET}: test_java_includes ${OBJECTS}
+	${CXX} ${LDFLAGS} -Xlinker ${OBJECTS} ${LIBDIR}/libalf.a -o $@
 
-libjalf.so-dynamic: test_java_includes ${OBJECTS}
-	${CXX} ${LDFLAGS} -Xlinker -soname=libjalf ${OBJECTS} -lalf -o libjalf.so
-
-
-# Windows targets
-jalf.dll: ${OBJECTS}
-	${CXX} ${LDFLAGS} ${OBJECTS} ${LIBDIR}/libalf.a -lws2_32 -o jalf.dll -Wl,--kill-at
-
-jalf.dll-dynamic: ${OBJECTS}
-	${CXX} ${LDFLAGS} ${OBJECTS} -lalf -lws2_32 -o jalf.dll -Wl,--kill-at
-
+${TARGET_DYNAMIC}: test_java_includes ${OBJECTS}
+	${CXX} ${LDFLAGS} -Xlinker ${OBJECTS} -lalf -o $@
 
 

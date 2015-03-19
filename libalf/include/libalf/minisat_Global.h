@@ -278,6 +278,8 @@ const lbool l_Undef = toLbool( 0);
 // Relation operators -- extend definitions from '==' and '<'
 
 
+// These cause a lot of problems due to ambiguous overloads
+/*
 #ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
 #define __SGI_STL_INTERNAL_RELOPS
 template <class T> static inline bool operator != (const T& x, const T& y) { return !(x == y); }
@@ -285,6 +287,7 @@ template <class T> static inline bool operator >  (const T& x, const T& y) { ret
 template <class T> static inline bool operator <= (const T& x, const T& y) { return !(y < x);  }
 template <class T> static inline bool operator >= (const T& x, const T& y) { return !(x < y);  }
 #endif
+*/
 
 
 //=================================================================================================

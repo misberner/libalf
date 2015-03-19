@@ -211,7 +211,7 @@ bool servant::serve()
 bool servant::send_errno(enum command_error_code err)
 {{{
 #ifdef VERBOSE_DEBUG
-	clog("result: %s (%d)\n", err2string(err), err);
+	clog("result: %s (%d)\n", err2string(static_cast<int>(err)), err);
 #endif
 	return client->stream_send_int(err);
 }}}
@@ -364,7 +364,7 @@ bool servant::reply_delete_object()
 		else
 			r = ERR_SUCCESS;
 #ifdef VERBOSE_DEBUG
-		clog("deleting object %d type %s[%d].\n", id, obj2string(objects[id]->get_type()), objects[id]->get_type(), err2string(r));
+		clog("deleting object %d type %s[%d].\n", id, obj2string(objects[id]->get_type()), objects[id]->get_type(), err2string(static_cast<int>(r)));
 #endif
 		delete objects[id];
 		objects[id] = NULL;

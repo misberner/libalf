@@ -55,9 +55,9 @@ enum command_error_code {
 	ERR_INTERNAL_ERROR = 1001,
 };
 
-inline const char* err2string(int errno)
+inline const char* err2string(int err_id)
 {{{
-	switch(errno) {
+	switch(err_id) {
 		case 0:
 			return "success";
 		case 1:
