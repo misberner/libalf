@@ -13,7 +13,7 @@ export LDFLAGS
 
 all: libalf libalf_interfaces examples finite-automata-tool liblangen libmVCA libAMoRE libAMoRE++
 
-libalf: libAMoRE++ liblangen libmVCA
+libalf:
 	PREFIX=${INSTALL_DIR} ${MAKE} -C $@ install
 
 libalf_interfaces: libalf

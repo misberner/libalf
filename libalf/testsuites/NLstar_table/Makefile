@@ -4,7 +4,7 @@
 .PHONY: all clean run jpegs test
 
 include ../../config.mk
-CXXFLAGS+=-Xlinker -rpath=${LIBDIR}
+CXXFLAGS+=-Xlinker -rpath ${LIBDIR}
 
 CPPFLAGS+=-I../../include -I${INCLUDEDIR} -Wall -ggdb3
 
